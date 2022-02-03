@@ -1,16 +1,8 @@
-const express = require("express");
 const inquirer = require("inquirer");
 const consoleTable = require("console.table");
 
 // MySQL Connection
 const db = require("./db/connection");
-
-const PORT = process.env.PORT || 3001;
-
-const app = express();
-
-app.use(express.json());
-
 
 const startOptions = () => {
   inquirer
@@ -46,14 +38,89 @@ const startOptions = () => {
           addDepartment();
           break;
         case "Quit":
-          quit();
+          db.end();
           break;
       }
     });
 };
+
 // View All Employees
 const viewAllEmployees = () => {
   db.query(`SELECT * FROM employee`, (err, res) => {
+    if (err) {
+      console.log(err);
+      process.exit(1);
+    };
+    const data = res.map((employee) => ({
+      name: `${employee.first_name} ${employee.last_name}`,
+      value: `${employee.id}`,
+    }));
+    console.table(data);
+    startOptions();
+  })
+};
+// Add Employee
+const addEmployee = () => {
+  db.query(`SELECT * FROM role`, (err, res) => {
+    if (err) {
+      console.log(err);
+      process.exit(1);
+    };
+    const roleChoice = res.map((role) => ({
+      name: `${role.title}`,
+      value: role.department_id,
+    }));
+  // db.query(`SELECT * FROM employee`, (err, res) => {
+  //   const managerChoice = res.map((employee) => ({
+  //     name: `${employee.first_name} ${employee.last_name}`,
+  //     manager_id: `${employee.manager_id}`,
+  //   }))
+  // });
+  inquirer
+    .prompt([
+    {
+      name: "first_name",
+      type: "input",
+      message: "What is their first name?",
+    },
+    {
+      name: "last_name",
+      type: "input",
+      message: "What is their last name?",
+    },
+    {
+      name: "role_id",
+      type: "list",
+      message: "What is their role?",
+      choices: roleChoice,
+    },
+    {
+      name: "manager_id",
+      type: "list",
+      message: "What is their manager_id?",
+      choices: [1, 2],
+    },
+    ])
+    .then((answers) => {
+      db.query(`INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?,?,?,?)`,
+      [
+        answers.first_name,
+        answers.last_name,
+        answers.role_id,
+        answers.manager_id,
+      ])
+      console.log("Successfully added!");
+      startOptions();
+    });
+  })
+};
+// Update Employee Role
+const updateEmployeeRole = () => {
+  db.query(`SELECT * FROM employee`, (err, res) => {
+    if (err) {
+      console.log(err);
+      process.exit(1);
+    };
     const data = res.map((employee) => ({
       id: `${employee.id}`,
       name: `${employee.first_name} ${employee.last_name}`
@@ -61,25 +128,11 @@ const viewAllEmployees = () => {
     console.table(data);
     startOptions();
   })
-}
-// Add Employee
-// Update Employee Role
+};
 // View All Roles
 // Add Role
 // View All Departments
 // Add Department
 // Quit
-const sql = "select * from department_db";
 
-db.query(sql, function (err, results) {
-  console.log(results);
-});
-
-
-
-
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-
-  startOptions();
+startOptions();
