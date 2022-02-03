@@ -1,5 +1,8 @@
 const express = require("express");
 const inquirer = require("inquirer");
+const consoleTable = require("console.table");
+
+// MySQL Connection
 const db = require("./db/connection");
 
 const PORT = process.env.PORT || 3001;
@@ -8,7 +11,7 @@ const app = express();
 
 app.use(express.json());
 
-startOptions();
+
 const startOptions = () => {
   inquirer
     .prompt({
@@ -50,8 +53,13 @@ const startOptions = () => {
 };
 // View All Employees
 const viewAllEmployees = () => {
-  db.query(`SELECT * FROM employees`, (err, res) => {
-    if (err)
+  db.query(`SELECT * FROM employee`, (err, res) => {
+    const data = res.map((employee) => ({
+      id: `${employee.id}`,
+      name: `${employee.first_name} ${employee.last_name}`
+    }));
+    console.table(data);
+    startOptions();
   })
 }
 // Add Employee
@@ -73,3 +81,5 @@ db.query(sql, function (err, results) {
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
+
+  startOptions();
