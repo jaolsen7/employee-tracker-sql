@@ -4,7 +4,7 @@ const consoleTable = require("console.table");
 // MySQL Connection
 const db = require("./db/connection");
 
-const startOptions = () => {
+function startOptions () {
   inquirer
     .prompt({
       name: "options",
@@ -45,22 +45,18 @@ const startOptions = () => {
 };
 
 // View All Employees
-const viewAllEmployees = () => {
-  db.query(`SELECT * FROM employee`, (err, res) => {
+function viewAllEmployees () {
+  db.query(`SELECT employee.first_name, employee.last_name, role.title, department.name AS dept, employee.manager_id FROM employee JOIN role ON employee.role_id = role.id JOIN department ON role.department_id = department.id`, (err, res) => {
     if (err) {
       console.log(err);
       process.exit(1);
     };
-    const data = res.map((employee) => ({
-      name: `${employee.first_name} ${employee.last_name}`,
-      value: `${employee.id}`,
-    }));
-    console.table(data);
+    console.table(res);
     startOptions();
   })
 };
 // Add Employee
-const addEmployee = () => {
+function addEmployee () {
   db.query(`SELECT * FROM role`, (err, res) => {
     if (err) {
       console.log(err);
@@ -70,12 +66,6 @@ const addEmployee = () => {
       name: `${role.title}`,
       value: role.department_id,
     }));
-  // db.query(`SELECT * FROM employee`, (err, res) => {
-  //   const managerChoice = res.map((employee) => ({
-  //     name: `${employee.first_name} ${employee.last_name}`,
-  //     manager_id: `${employee.manager_id}`,
-  //   }))
-  // });
   inquirer
     .prompt([
     {
@@ -115,24 +105,124 @@ const addEmployee = () => {
   })
 };
 // Update Employee Role
-const updateEmployeeRole = () => {
-  db.query(`SELECT * FROM employee`, (err, res) => {
+function updateEmployeeRole () {
+  db.query(`SELECT * FROM employee JOIN role ON employee.role_id = role.id`, async function (err, res) {
     if (err) {
       console.log(err);
       process.exit(1);
     };
-    const data = res.map((employee) => ({
-      id: `${employee.id}`,
-      name: `${employee.first_name} ${employee.last_name}`
-    }));
-    console.table(data);
+    await inquirer
+      .prompt([
+      {
+        name: "employeeChoice",
+        type: "list",
+        message: "Which employee would you like to update?",
+        choices: res.map((employee) => ({
+          name: `${employee.first_name} ${employee.last_name}`,
+          value: employee.id,
+        })),
+      },
+      {
+        name: "roleChoice",
+        type: "list",
+        message: "What is their new role?",
+        choices: res.map((role) => ({
+          name: `${role.title}`,
+          value: role.id,
+        })),
+      },
+    ]).then((answers) => {
+      const updateQuery = `
+        UPDATE employee
+        SET role_id = ${answers.roleChoice}
+        WHERE id = ${answers.employeeChoice}`;
+      db.query(updateQuery, function (err) {
+        if (err) {
+          console.error(err);
+          process.exit(1);
+        }
+        console.log("Updated employee role successfully");
+      });
     startOptions();
+    })
   })
 };
 // View All Roles
+function viewAllRoles () {
+  db.query(`SELECT * FROM role`, (err, res) => {
+    if (err) {
+      console.log(err);
+      process.exit(1);
+    };
+    console.table(res);
+    startOptions();
+  })
+};
 // Add Role
+function addRole () {
+  db.query(`SELECT * FROM department`, (err, res) => {
+    if (err) {
+      console.log(err);
+      process.exit(1);
+    };
+    inquirer
+      .prompt([{
+              name: "newRoleTitle",
+              type: "input",
+              message: "What is the name of the new role?",
+          },
+          {
+              name: "newSalary",
+              type: "input",
+              message: "How much will they getting paid annually?",
+          },
+          {
+              name: "newDept",
+              type: "list",
+              message: "Which department does this role belong?",
+              choices: res.map((department) => ({
+                name: `${department.name}`,
+                value: department.id,
+                })),
+          },
+      ])
+      .then((answer) => {
+          db.query(`INSERT INTO role (title, salary, department_id) values ("${answer.newRoleTitle}", "${answer.newSalary}", "${answer.newDept}")`)
+          startOptions();
+      })
+  })
+};
 // View All Departments
+function viewAllDepartments () {
+  db.query(`SELECT * FROM department`, (err, res) => {
+    if (err) {
+      console.log(err);
+      process.exit(1);
+    };
+    console.table(res);
+    startOptions();
+  })
+};
 // Add Department
+function addDepartment () {
+  db.query(`SELECT * FROM department`, (err, res) => {
+    if (err) {
+      console.log(err);
+      process.exit(1);
+    };
+    inquirer
+      .prompt([{
+              name: "newDeptTitle",
+              type: "input",
+              message: "What is the name of the new department?",
+          },
+      ])
+      .then((answer) => {
+          db.query(`INSERT INTO department (name) values ("${answer.newDeptTitle}")`)
+          startOptions();
+      })
+  })
+};
 // Quit
 
 startOptions();
