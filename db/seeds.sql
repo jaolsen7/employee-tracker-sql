@@ -3,7 +3,7 @@ VALUES  ("Marketing"),
         ("Operations"),
         ("HR"),
         ("IT");
--- need values for dept_id,etc
+
 INSERT INTO role (title, salary, department_id)
 VALUES  ("Sales Rep", 75000, 1),
         ("Sales Manager", 125000, 1),

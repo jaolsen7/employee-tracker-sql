@@ -106,46 +106,55 @@ function addEmployee () {
 };
 // Update Employee Role
 function updateEmployeeRole () {
-  db.query(`SELECT * FROM employee JOIN role ON employee.role_id = role.id`, async function (err, res) {
-    if (err) {
-      console.log(err);
-      process.exit(1);
-    };
-    await inquirer
-      .prompt([
-      {
-        name: "employeeChoice",
-        type: "list",
-        message: "Which employee would you like to update?",
-        choices: res.map((employee) => ({
-          name: `${employee.first_name} ${employee.last_name}`,
-          value: employee.id,
-        })),
-      },
-      {
-        name: "roleChoice",
-        type: "list",
-        message: "What is their new role?",
-        choices: res.map((role) => ({
-          name: `${role.title}`,
-          value: role.id,
-        })),
-      },
-    ]).then((answers) => {
-      const updateQuery = `
-        UPDATE employee
-        SET role_id = ${answers.roleChoice}
-        WHERE id = ${answers.employeeChoice}`;
-      db.query(updateQuery, function (err) {
+  db.query(
+    `SELECT * FROM employee`,
+    async function (err, employee) {
+      if (err) {
+        console.error(err);
+        process.exit(1);
+      }
+      const { empChoice } = await inquirer.prompt([
+        {
+          type: "list",
+          name: "empChoice",
+          message: "Which employee would you like to update?",
+          choices: employee.map((employee) => ({
+            name: `${employee.first_name} ${employee.last_name}`,
+            value: employee.id,
+          })),
+        },
+      ]);
+        db.query("select * from role;", async function (err, role) {
         if (err) {
           console.error(err);
           process.exit(1);
         }
-        console.log("Updated employee role successfully");
+        const { roleChoice } = await inquirer.prompt([
+          {
+            type: "list",
+            name: "roleChoice",
+            message: "What is their new role?",
+            choices: role.map((role) => ({
+              name: `${role.title}`,
+              value: role.id,
+            })),
+          },
+        ]);
+        const updateQuery = `
+          UPDATE employee
+          SET role_id = ?
+          WHERE id = ?`;
+        db.query(updateQuery, [roleChoice, empChoice], function (err) {
+          if (err) {
+            console.error(err);
+            process.exit(1);
+          }
+          console.log("Employee role updated successfully");
+          startOptions();
+        });
       });
-    startOptions();
-    })
-  })
+    }
+  );
 };
 // View All Roles
 function viewAllRoles () {
